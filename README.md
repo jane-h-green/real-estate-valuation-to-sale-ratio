@@ -1,4 +1,4 @@
-# Real Estate Valuation versus Actual Sale's Price
+# Real Estate Valuation versus Actual Sale Price
 
 Exploring the factors that impact the assessed versus actual sale price of a real estate property.  
 

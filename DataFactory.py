@@ -27,27 +27,15 @@ from sklearn.feature_extraction import DictVectorizer
 
 def allDataForOutcome(filename, yVaribale):
     data = pd.read_csv(filename, delimiter=',' , encoding='latin-1')
-    data = pd.DataFrame(data)
-    print(data.head())
-
-    #transform to numerical values - 
-    #data['ListYear'] = pd.to_numeric(data['ListYear'])
-    #data['AssessedValue'] = data['AssessedValue'].astype(float)
-    #data['SaleAmount'] = data['SaleAmount'].astype(float)
-    #data['SalesRatio'] = data['SalesRatio'].astype(float)
-    
-    data['ListYear'] = data['ListYear'].fillna(0)
-    data['AssessedValue'] = data['AssessedValue'].fillna(0)
-    data['SaleAmount'] = data['SaleAmount'].fillna(0)
-    data['SalesRatio'] = data['SalesRatio'].fillna(0)
-
+    data = data.dropna(subset=['SaleAmount','SalesRatio', 'AssessedValue'])
+    #print(data.head())
     #Drop the variables which do not add any meaning - 
     data = data.drop(['SerialNumber'], axis=1)#meaningless - its an ID
 
     #Define the X and Y variables - 
-    Y = data[yVaribale]
+    Y = data['SalesRatio']
     X = data
-    X = X.drop([yVaribale], axis=1)
+    X = X.drop(['SalesRatio'], axis=1)
 
     # Fit/Transform - Y var
     number = LabelEncoder()
@@ -57,16 +45,26 @@ def allDataForOutcome(filename, yVaribale):
     X['ResidentialType'] = X['ResidentialType'].fillna('')
     X['NonUseCode'] = X['NonUseCode'].fillna('')
     X['PropertyType'] = X['PropertyType'].fillna('')
-    
+
     # Fit/Transform the X categorical variables -
     number = LabelEncoder()
+    townLabels = X['Town'].values
     X['Town'] = number.fit_transform(X['Town'])
+    mappedTownLabels = X['Town'].values
+
+    propertyTypeLabels = X['PropertyType'].values
     X['PropertyType'] = number.fit_transform(X['PropertyType'])
+    mappedPropertyTypeLabels = X['PropertyType'].values
+
+    residentialTypeLabels = X['ResidentialType'].values
     X['ResidentialType'] = number.fit_transform(X['ResidentialType'])
+    mappedResidentialTypeLabels = X['ResidentialType'].values
     X['NonUseCode'] = number.fit_transform(X['NonUseCode'])
 
     #TODO - Exact geolocation - convert to Latitude/Longitude.
     # for now address can be dropped - 
+
+    #Using Google maps geolocation - 
     X = X.drop(['Address'], axis=1)
     
     return [X,Y]

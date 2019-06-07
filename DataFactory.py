@@ -18,6 +18,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.feature_extraction import DictVectorizer
+from dateutil import parser
 
 # Default Salesforce data import function -
 # @ Imports the full data
@@ -27,7 +28,7 @@ from sklearn.feature_extraction import DictVectorizer
 
 def allDataForOutcome(filename, yVaribale):
     data = pd.read_csv(filename, delimiter=',' , encoding='latin-1')
-    data = data.dropna(subset=['SaleAmount','SalesRatio', 'AssessedValue'])
+    data = data.dropna(subset=['SaleAmount','SalesRatio', 'AssessedValue', 'DateRecorded'])
     #print(data.head())
     #Drop the variables which do not add any meaning - 
     data = data.drop(['SerialNumber'], axis=1)#meaningless - its an ID
@@ -63,9 +64,52 @@ def allDataForOutcome(filename, yVaribale):
 
     #TODO - Exact geolocation - convert to Latitude/Longitude.
     # for now address can be dropped - 
-
     #Using Google maps geolocation - 
     X = X.drop(['Address'], axis=1)
+
+    #Process the date column - 
+    from dateutil import parser
+    def dateObject(date_str):
+        #print('parsing ', date_str)
+        dt = parser.parse(date_str)
+        return dt
+
+    X['DateRecorded'] = X['DateRecorded'].apply(dateObject)
+
+    # Include columns to capture year, month, day - this is more accurate because 
+    # will help us to capture cyclical patterns - if ratios depend on such.  
+
+    def dateYear(date):
+        return date.year
+
+    def dateMonth(date):
+        return date.month
+
+    def dateDay(date):
+        return date.day
+
+    X['Year'] = X['DateRecorded'].apply(dateYear)
+    X['Month'] = X['DateRecorded'].apply(dateMonth)
+    X['Day'] = X['DateRecorded'].apply(dateDay)
+    X = X.drop(['DateRecorded'], axis=1)
+
+    #Add time to sell - 
+    def timeToSell(year, listYear):
+        time = year - listYear
+        return time
+
+    X['TimeToSell'] = np.vectorize(timeToSell)(X['Year'], X['ListYear'])
+
+    #Remarks - add a column for properties owned by the bank - 
+    def ownedByTheBank(remarks):
+        if remarks == 'PROPERTY WAS OWNED BY THE BANK':
+            return 1
+        else:
+            return 0
+
+    X['OwnedByBank'] = X['Remarks'].apply(ownedByTheBank)
+    #More columns can be engineered out of remarks but for now drop the rest - 
+    X = X.drop(['Remarks'], axis=1)
     
     return [X,Y]
 
